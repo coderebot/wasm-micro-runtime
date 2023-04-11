@@ -855,6 +855,7 @@ export default class TypeResolver {
     private parseInfcDecl(node: ts.InterfaceDeclaration): TSInterface {
         const infc = new TSInterface();
         this.nodeTypeCache.set(node, infc);
+	infc.setClassName(node.name!.getText());
         const methodTypeStrs: string[] = [];
         const fieldTypeStrs: string[] = [];
 

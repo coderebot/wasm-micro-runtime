@@ -11,7 +11,9 @@ import { fileURLToPath } from 'url';
 import { ParserContext, CompileArgs } from '../src/frontend.js';
 import log4js from 'log4js';
 import { Logger, consoleLogger } from '../src/log.js';
+import { Ts2wasmBackend } from '../src/backend/index.js';
 import { WASMGen } from '../src/backend/binaryen/index.js';
+import { CCodeGen } from '../src/backend/c/index.js';
 import { default as logConfig } from '../config/log4js.js';
 import { SyntaxError } from '../src/error.js';
 
@@ -141,6 +143,13 @@ function getAbsolutePath(filename: string, baseDir = '') {
     return filePath;
 }
 
+function createBackend(args: any, parserCtx: ParserContext): Ts2wasmBackend {
+    if (args.c) {
+        return new CCodeGen(parserCtx);
+    }
+    return new WASMGen(parserCtx);
+}
+
 function main() {
     try {
         const args = minimist(process.argv.slice(2));
@@ -208,7 +217,8 @@ function main() {
         parserCtx.parse(sourceFileList, compileArgs);
 
         /* Step2: Backend codegen */
-        const backend = new WASMGen(parserCtx);
+        //const backend = new WASMGen(parserCtx);
+        const backend = createBackend(args, parserCtx);
         backend.codegen(compileArgs);
 
         /* Step3: output */

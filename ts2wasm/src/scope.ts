@@ -594,9 +594,8 @@ export class ClassScope extends Scope {
 export class NamespaceScope extends Scope {
     kind = ScopeKind.NamespaceScope;
 
-    constructor(parent: Scope, name = '') {
+    constructor(parent: Scope, public name : string = '') {
         super(parent);
-        this.name = name;
     }
 
     addVariable(variableObj: Variable) {

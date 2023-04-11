@@ -17,6 +17,8 @@ type ExpressionKind = ts.SyntaxKind;
 export class Expression {
     private kind: ExpressionKind;
     private type: Type = new Type();
+    
+    public tsNode?: ts.Node;
 
     constructor(kind: ExpressionKind) {
         this.kind = kind;
@@ -353,6 +355,12 @@ export default class ExpressionProcessor {
     }
 
     visitNode(node: ts.Node): Expression {
+        const expr = this.visitNodeInternal(node);
+	expr.tsNode = node;
+	return expr;
+    }
+
+    private visitNodeInternal(node: ts.Node) : Expression {
         switch (node.kind) {
             case ts.SyntaxKind.NullKeyword: {
                 const nullExpr = new NullKeywordExpression();

@@ -10,7 +10,6 @@ export abstract class Ts2wasmBackend {
     public abstract dispose(): void;
 }
 
-
 export interface SegmentInfo {
     data: Uint8Array;
     offset: number;
@@ -100,4 +99,3 @@ export class DataSegmentContext {
         return this.currentOffset;
     }
 }
-

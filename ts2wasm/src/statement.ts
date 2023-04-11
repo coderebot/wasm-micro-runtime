@@ -30,6 +30,7 @@ type StatementKind = ts.SyntaxKind;
 
 export class Statement {
     private _scope: Scope | null = null;
+    public tsNode?: ts.Node;
 
     constructor(private kind: StatementKind) {}
 
@@ -313,6 +314,13 @@ export default class StatementProcessor {
     }
 
     visitNode(node: ts.Node): Statement | null {
+      const stm = this.visitNodeInternal(node);
+      if (stm != null)
+	      stm.tsNode = node;
+      return stm;
+    }
+
+    visitNodeInternal(node: ts.Node): Statement | null {
         switch (node.kind) {
             case ts.SyntaxKind.ImportDeclaration: {
                 const importDeclaration = <ts.ImportDeclaration>node;

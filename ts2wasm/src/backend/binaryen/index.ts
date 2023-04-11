@@ -48,11 +48,7 @@ import {
     initDefaultTable,
 } from './memory.js';
 import { ArgNames, BuiltinNames } from '../../../lib/builtin/builtin_name.js';
-import {
-    Ts2wasmBackend,
-    ParserContext,
-    DataSegmentContext
-} from '../index.js';
+import { Ts2wasmBackend, ParserContext, DataSegmentContext } from '../index.js';
 import { Logger } from '../../log.js';
 import { callBuiltInAPIs } from './lib/init_builtin_api.js';
 
@@ -279,10 +275,10 @@ export class WASMGen extends Ts2wasmBackend {
         const segmentInfo = this.dataSegmentContext!.generateSegment();
         if (segmentInfo) {
             segments.push({
-              offset: this.module.i32.const(segmentInfo.offset),
-	      data: segmentInfo.data,
-	      passive: false
-	    });
+                offset: this.module.i32.const(segmentInfo.offset),
+                data: segmentInfo.data,
+                passive: false,
+            });
         }
         initDefaultMemory(this.module, segments);
     }
