@@ -552,7 +552,11 @@ export class CastValue extends SemanticsValue {
     public vtable?: VTable;
 
     dump(writer: DumpWriter) {
-      writer.write(`[CastValue(${SemanticsValueKind[this.kind]}) From "${this.value.type}" To "${this.type}"]`);
+      let vt_str = 'DYNAMIC_CAST';
+      if (this.vtable) {
+        vt_str = `STATIC_CAST from "${this.vtable.meta.name}"`; 
+      }
+      writer.write(`[CastValue(${SemanticsValueKind[this.kind]}) From "${this.value.type}" To "${this.type}" ${vt_str}]`);
       writer.shift();
       this.value.dump(writer);
       writer.unshift();

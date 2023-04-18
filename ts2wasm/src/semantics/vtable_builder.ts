@@ -386,7 +386,7 @@ function buildVTableOfValues(values: SemanticsValue[], module: ModuleNode) {
 }
 
 function buildVTableOfValue(value: SemanticsValue, module: ModuleNode) {
-  console.log(`===== buildVTable from Value: ${SemanticsValueKind[value.kind]}`);
+  //console.log(`===== buildVTable from Value: ${SemanticsValueKind[value.kind]}`);
   switch(value.kind) {
     case SemanticsValueKind.NEW_CLASS:
       buildInstanceVTable(value.type as ClassType, module);

@@ -721,10 +721,11 @@ export function newBinaryExprValue(type: ValueType|undefined, opKind: ValueBinar
     } else {
       //console.log(`==== left: ${left_value}, right: ${right_value}`);
       const target_type = typeTranslate(left_value.type, right_value.type);
+      //console.log(`====== target_type: ${target_type}`);
       if (!target_type.equals(left_value.type))
         left_value = newCastValue(target_type, left_value);
-      else
-	left_value = newCastValue(target_type, left_value);
+      if (!target_type.equals(right_value.type))
+	right_value = newCastValue(target_type, right_value);
     }
   } else {
     if (is_equal && isPropertySetValue(left_value)) {

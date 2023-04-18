@@ -20,7 +20,9 @@ import {
 } from '../variable.js';
 
 import {
-    Type
+    Type,
+    TypeKind,
+    TSClass,
 } from '../type.js';
 
 import {
@@ -62,6 +64,8 @@ export function SymbolKeyToString(key?: SymbolKey) : string {
     return `[VAR ${v.varName}(${v.mangledName}) ${SymbolKeyToString(v.varType)}  ${scope}]`;
   } else if (key! instanceof Type) {
     const t = key! as Type;
+    if (key.kind == TypeKind.CLASS)
+      return `[Class ${(t as TSClass).typeId}]`;
     return `[Type ${t.kind}]`;
   } else if (key! instanceof Scope) {
     const s = key! as Scope;
@@ -139,14 +143,27 @@ export class BuildContext {
       Logger.error(`Unknown identifier name "${name}"`);
       return undefined;
     }
+    return this.findSymbolKey(name!);
+  }
+
+  findSymbolKey(name: SymbolKey) : SymbolValue | undefined {
     for (let i = this.stackEnv.length - 1; i >= 0; i --) {
       const env = this.stackEnv[i];
       console.log(`=== scope[${i}] ${SymbolKeyToString(env.scope)}, ${env.symbols}`);
       env.symbols.forEach((v, k) => console.log(`==symbols ${SymbolKeyToString(k)}, ${v.toString()}`));
-      if (env.symbols.has(name!))
-	return env.symbols.get(name!);      
+      if (env.symbols.has(name))
+	return env.symbols.get(name);      
     }
     this.globalSymbols.forEach((v, k) => console.log(`=== global symbols ${SymbolKeyToString(k)}, ${v.toString()}`));
-    return this.globalSymbols.get(name!);
+    return this.globalSymbols.get(name);
+  }
+
+  findValueType(name: SymbolKey) : ValueType | undefined {
+    const value = this.findSymbolKey(name);
+    if (!value) return undefined;
+    console.log(`===== findValueType ${SymbolKeyToString(name)}: ${value}`);
+    if (value instanceof ValueType) return value as ValueType;
+    if (value instanceof VarDeclareNode) return (value as VarDeclareNode).type;
+    return undefined;
   }
 }

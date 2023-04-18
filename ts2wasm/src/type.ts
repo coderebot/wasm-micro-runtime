@@ -509,8 +509,13 @@ export default class TypeResolver {
         }
         // iff object literal type
         if (this.isObjectLiteral(type)) {
+            const decl = type.symbol.declarations![0];
+	    const cached_type = this.nodeTypeCache.get(decl);
+	    if (cached_type) return cached_type;
+
             const tsClass = new TSClass();
-            tsClass.setClassName('@object_literal');
+            tsClass.setClassName(this.generateObjectLiteralName());
+	    this.nodeTypeCache.set(decl, tsClass);
             const methodTypeStrs: string[] = [];
             const fieldTypeStrs: string[] = [];
             type.getProperties().map((prop) => {
@@ -915,6 +920,13 @@ export default class TypeResolver {
         const id = this.parserCtx.typeIdMap.size;
         this.parserCtx.typeIdMap.set(typeString, id);
         return id;
+    }
+
+    private generateObjectLiteralName() : string {
+      const id = this.parserCtx.typeIdMap.size;
+      const name = `@object_literal${id}`;
+      this.generateTypeId(name);
+      return name;
     }
 
     private typeToString(node: ts.Node) {

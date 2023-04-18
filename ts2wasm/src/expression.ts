@@ -648,6 +648,7 @@ export default class ExpressionProcessor {
                     fields,
                     values,
                 );
+		console.log(`===== object_literal ====`)
                 objLiteralExpr.setExprType(
                     this.typeResolver.generateNodeType(node),
                 );
