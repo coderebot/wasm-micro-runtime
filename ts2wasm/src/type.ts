@@ -132,6 +132,7 @@ export class TSClass extends Type {
     private _staticFields: Array<TsClassField> = [];
     private _methods: Array<TsClassFunc> = [];
     private _baseClass: TSClass | null = null;
+    private _isLiteral: boolean = false;
 
     public staticFieldsInitValueMap: Map<number, Expression> = new Map();
     /* override or own methods */
@@ -238,6 +239,14 @@ export class TSClass extends Type {
     get typeId() {
         return this._typeId;
     }
+
+    set isLiteral(b: boolean) {
+      this._isLiteral = b;
+    }
+
+    get isLiteral() : boolean {
+      return this._isLiteral;
+    }   
 }
 
 export class TSInterface extends TSClass {
@@ -515,6 +524,7 @@ export default class TypeResolver {
 
             const tsClass = new TSClass();
             tsClass.setClassName(this.generateObjectLiteralName());
+	    tsClass.isLiteral = true;
 	    this.nodeTypeCache.set(decl, tsClass);
             const methodTypeStrs: string[] = [];
             const fieldTypeStrs: string[] = [];

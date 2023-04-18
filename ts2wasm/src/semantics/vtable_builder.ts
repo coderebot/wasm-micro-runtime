@@ -385,11 +385,15 @@ function buildVTableOfValues(values: SemanticsValue[], module: ModuleNode) {
      buildVTableOfValue(v, module);
 }
 
+function updateVTable(value: CastValue | NewClassValue, vtable?: VTable) {
+  value.vtable = vtable;
+}
+
 function buildVTableOfValue(value: SemanticsValue, module: ModuleNode) {
   //console.log(`===== buildVTable from Value: ${SemanticsValueKind[value.kind]}`);
   switch(value.kind) {
     case SemanticsValueKind.NEW_CLASS:
-      buildInstanceVTable(value.type as ClassType, module);
+      updateVTable(value as NewClassValue, buildInstanceVTable(value.type as ClassType, module));
       break;
     case SemanticsValueKind.INTERFACE_CAST_INTERFACE:
     case SemanticsValueKind.INTERFACE_CAST_OBJECT:
@@ -397,11 +401,11 @@ function buildVTableOfValue(value: SemanticsValue, module: ModuleNode) {
       break; // must call dynamic_cast
     case SemanticsValueKind.OBJECT_CAST_INTERFACE:
     case SemanticsValueKind.OBJECT_CAST_OBJECT:
-      buildInterfaceVTable((value as CastValue).value.type as ClassType, value.type as ClassType, module);
+      updateVTable(value as CastValue, buildInterfaceVTable((value as CastValue).value.type as ClassType, value.type as ClassType, module));
       buildVTableOfValue((value as CastValue).value, module);
       break;
     case SemanticsValueKind.CLASS_CAST_INTERFACE:
-      buildClassInterfaceVTable((value as CastValue).value.type as ClassType, value.type as ClassType, module);
+      updateVTable(value as CastValue, buildClassInterfaceVTable((value as CastValue).value.type as ClassType, value.type as ClassType, module));
       break;
     case SemanticsValueKind.VALUE_CAST_ANY:
     case SemanticsValueKind.VALUE_CAST_VALUE:

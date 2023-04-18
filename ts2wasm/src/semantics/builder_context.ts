@@ -48,6 +48,7 @@ export type SymbolValue = SemanticsValue | ValueType | SemanticsNode;
 export interface BuildEnv {
   scope: Scope;
   symbols: Map<SymbolKey, SymbolValue>;
+  function?: FunctionDeclareNode;
 }
 
 export enum ValueReferenceKind {
@@ -121,6 +122,13 @@ export class BuildContext {
 
   top() : BuildEnv {
     return this.stackEnv[this.stackEnv.length - 1];
+  }
+
+  currentFunction() : FunctionDeclareNode | undefined {
+    for (let i = this.stackEnv.length - 1; i >= 0; i --) {
+      if (this.stackEnv[i].function) return this.stackEnv[i].function;
+    }
+    return undefined;
   }
 
   getScopeNamespace() : string {

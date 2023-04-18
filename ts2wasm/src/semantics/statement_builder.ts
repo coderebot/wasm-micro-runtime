@@ -64,6 +64,7 @@ import {
 
 import {
     ValueType,
+    ValueTypeKind,
     Primitive,
     PrimitiveType
 } from './value_types.js'
@@ -226,8 +227,21 @@ function buildIfStatement(statement: IfStatement, context: BuildContext) : Seman
 
 function buildReturnStatement(statement: ReturnStatement, context: BuildContext) : SemanticsNode {
   context.pushReference(ValueReferenceKind.RIGHT);
-  const returnvalue = statement.returnExpression != null ?  buildExpression(statement.returnExpression!, context) : undefined;
+  let returnvalue = statement.returnExpression != null ?  buildExpression(statement.returnExpression!, context) : undefined;
   context.popReference();
+
+  if (returnvalue) {
+    const func = context.currentFunction();
+    if (func) {
+      const func_type = func.funcType;
+      const ret_type = func_type.returnType;
+      if (!(ret_type.kind == ValueTypeKind.ANY || ret_type.kind == ValueTypeKind.VOID)) {
+        if (!ret_type.equals(returnvalue.type)) {
+          returnvalue = newCastValue(ret_type, returnvalue);
+        }
+      }
+    }
+  }
   return new ReturnNode(returnvalue);
 }
 

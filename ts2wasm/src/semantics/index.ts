@@ -290,6 +290,7 @@ function generateFunctionScopeNodes(context: BuildContext, scope: FunctionScope)
     func.varList = local_varlist;
 
     context.push(scope, local_symbols);
+    context.top().function = func;
     if (local_symbols)
       local_symbols!.forEach((v, k) => console.log(`== local ${SymbolKeyToString(k)}, ${v.toString()}`));
 

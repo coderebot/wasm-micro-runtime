@@ -279,7 +279,7 @@ export function createType(context: BuildContext, type: Type, isObjectLiteral: b
 
   switch(type.kind) {
     case TypeKind.CLASS:
-      value_type = new ClassType(createMeta(type as TSClass, context, isObjectLiteral));
+      value_type = new ClassType(createMeta(type as TSClass, context, isObjectLiteral || (type as TSClass).isLiteral));
       break;
     case TypeKind.INTERFACE:
       value_type = new InterfaceType(createMeta(type as TSClass, context));
