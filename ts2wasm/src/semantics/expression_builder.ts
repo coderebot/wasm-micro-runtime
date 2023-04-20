@@ -684,6 +684,15 @@ export function newCastValue(type: ValueType, value: SemanticsValue) : Semantics
     throw Error(`cannot make cast value from "${value.type}" to  "${type}"`);
   }
 
+  if (type.kind == ValueTypeKind.NULL
+      || type.kind == ValueTypeKind.UNDEFINED
+      || type.kind == ValueTypeKind.NEVER) {
+     if (value.type.kind == ValueTypeKind.ANY) {
+       return new CastValue(SemanticsValueKind.ANY_CAST_VALUE, type, value);
+     }
+     throw Error(`cannot make cast value from "${value.type}" to  "${type}"`);
+   }
+
 
   if (type.kind == ValueTypeKind.ANY) {
     if (isObjectType(value.type.kind))
