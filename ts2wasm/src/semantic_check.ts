@@ -175,10 +175,18 @@ export default class SemanticChecker {
         if (!(typel instanceof TSClass) || !(typer instanceof TSClass)) {
             return;
         }
+	// TODO now ignore object literal
+	// we changed the literal name from "@object_literal" to "@object_literal$idx"
+	// 
+	if ((typel as TSClass).isLiteral && (typer as TSClass).isLiteral)
+          return;
         if (typel.className !== typer.className) {
             // is downcast
             let base = typer.getBase();
             while (base) {
+		//TODO assume all liberal object's name is "@object_literal"
+		//TODO in factly, I changed the name to "@object_literal$idx"
+		// See TypeResolver.generateObjectLiteralName
                 if (base.className === typel.className) {
                     return;
                 }
