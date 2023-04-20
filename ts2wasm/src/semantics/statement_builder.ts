@@ -36,7 +36,7 @@ import {
 
 import { Variable, ModifierKind } from '../variable.js';
 
-import { Scope } from '../scope.js';
+import { Scope, ScopeKind, FunctionScope } from '../scope.js';
 
 import {
     Statement,
@@ -113,9 +113,37 @@ export function createLocalSymbols(scope: Scope, context: BuildContext)
       const value = new VarValue(node.storageType, node.type, node, node.index); 
       //Logger.info(`=== var ${v.varName} value: ${value}`);
       console.log(`=== createLocalSymbols ${SymbolKeyToString(v)} value: ${value.toString()}`);
+      varList.push(node);
       symbols.set(v, value);
     }
   }
+
+  for (const child of scope!.children) {
+    console.log(`====== createLocalSymbols child scope:${scope.kind}`);
+    if (scope.kind == ScopeKind.FunctionScope) {
+      const fc = child as FunctionScope;
+      const name = fc.funcName;
+      if (name == '') {
+        continue;
+      }
+      const type = context.module.findValueTypeByType(fc.funcType);
+      if (!type) {
+        throw Error(`Cannot found the function type for ${name} function`);
+      }
+      // create varDeclareNode
+      if (varList == undefined) varList = [];
+      if (symbols == undefined) symbols = new Map();
+      const node = new VarDeclareNode(SemanticsValueKind.LOCAL_CONST,
+				      type,
+                                      name,
+				      varList.length,
+				      0);
+      const value = new VarValue(node.storageType, node.type, node, node.index);
+      varList!.push(node);
+      symbols!.set(fc, value);
+    }
+  }
+
   return [varList, symbols];
 }
 
