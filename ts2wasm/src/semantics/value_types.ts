@@ -60,7 +60,9 @@ export enum PredefinedTypeId {
     MAP_STRING_ANY,
     MAP_INT_STRING,
     MAP_INT_ANY,
-    CUSTOM_TYPE_BEGIN
+    BUILTIN_TYPE_BEGIN,
+
+    CUSTOM_TYPE_BEGIN = BUILTIN_TYPE_BEGIN + 1000
 }
 
 export const CustomTypeId =  PredefinedTypeId.CUSTOM_TYPE_BEGIN;

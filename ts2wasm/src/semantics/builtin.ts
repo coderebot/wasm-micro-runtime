@@ -10,6 +10,8 @@ import {
     MapType,
     SetType,
     Primitive,
+    FunctionType,
+    PredefinedTypeId,
 } from './value_types.js';
 
 import {
@@ -25,6 +27,8 @@ export function IsBuiltInObjectType(kind: ValueTypeKind) : boolean {
      return kind == ValueTypeKind.ARRAY
 	 || kind == ValueTypeKind.SET
 	 || kind == ValueTypeKind.MAP
+	 || kind == ValueTypeKind.STRING     // string and raw string is object
+	 || kind == ValueTypeKind.RAW_STRING
 	 || kind == ValueTypeKind.OBJECT;
 
 }
@@ -34,9 +38,20 @@ export function IsBuiltInType(kind: ValueTypeKind) : boolean {
          || IsBuiltInObjectType(kind);
 }
 
+export function IsBuiltInTypeButAny(kind: ValueTypeKind) : boolean {
+  return kind != ValueTypeKind.ANY && IsBuiltInType(kind);
+}
+
+///////////////////////////////////////////////////
+
+const FuncStringString = new FunctionType(PredefinedTypeId.BUILTIN_TYPE_BEGIN + 1,
+					  Primitive.String, [Primitive.String], false);
+
+
 const string_members : MemberInfo[] = [
   { name: 'length', type: MemberType.ACCESSOR, index: 0, valueType: Primitive.Int},
-  { name: 'slice', type: MemberType.METHOD, index: 1, valueType: Primitive.String},
+  { name: 'slice', type: MemberType.METHOD, index: 1, valueType: FuncStringString},
+  { name: 'concat', type: MemberType.METHOD, index: 2, valueType: FuncStringString},
 ]
 
 const builtin_namespace = "bultin";
@@ -91,7 +106,7 @@ function createArrayClassMeta(arrType: ArrayType) : ClassMetaInfo {
       typeId: ValueTypeKind.ARRAY,
       members: [
         {name: 'length', type: MemberType.ACCESSOR, index: 0, valueType: Primitive.Int},
-	{name: 'slice', type: MemberType.METHOD, index: 1, valueType: arrType}
+	{name: 'slice', type: MemberType.METHOD, index: 1, valueType: new FunctionType(-1, arrType, [Primitive.Int, Primitive.Int], false)}
       ]
     }
   };

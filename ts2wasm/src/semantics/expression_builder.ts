@@ -117,6 +117,7 @@ import {
 import { BuildContext, ValueReferenceKind, SymbolKeyToString } from './builder_context.js'; 
 import {
     IsBuiltInType,
+    IsBuiltInTypeButAny,
     IsBuiltInObjectType,
     GetBuiltInMemberType,
     createCollectionType,
@@ -421,7 +422,7 @@ function buildPropertyAccessExpression(expr: PropertyAccessExpression, context: 
   context.popReference();
 
   if (own.kind == SemanticsValueKind.NOP) {
-    // ERROR
+    throw Error(`buildPropertyAccessExpression: Got NopValue`);
     return own;
   }
 
@@ -433,7 +434,7 @@ function buildPropertyAccessExpression(expr: PropertyAccessExpression, context: 
 
   let member : MemberInfo | undefined = undefined;
   let own_obj_type = ValueObjectType.CLASS_OBJECT;
-  if (IsBuiltInObjectType(type.kind)) {
+  if (IsBuiltInTypeButAny(type.kind)) {
     member = GetBuiltInMemberType(type, member_name);
     own_obj_type = ValueObjectType.BUILTIN_OBJECT;
   } else if (own.kind == SemanticsValueKind.CLASS_STATIC) {
@@ -452,8 +453,12 @@ function buildPropertyAccessExpression(expr: PropertyAccessExpression, context: 
       return new PropertyGetValue(SemanticsValueKind.ANY_GET_FIELD, Primitive.Any, own, member_name);
     }
   } else {
-    // TODO ERROR
+    throw Error(`Unknow own type ${type} of ${own} in buildPropertyAccessExpression`);
     return new NopValue();
+  }
+
+  if (!member) {
+    throw Error(`Cannot find the member "${member_name}" in ${own}`);
   }
 
   let value_kind = getPropertyValueKindFrom(ref_type, member!.type, own_obj_type);
@@ -709,9 +714,9 @@ export function newCastValue(type: ValueType, value: SemanticsValue) : Semantics
     if (value.type.kind == ValueTypeKind.ANY)
       return new CastValue(SemanticsValueKind.ANY_CAST_INTERFACE, type, value);
 
-    throw Error(`cannot make cast value from "${value.type}" to  "${type}"`);
   }
 
+  throw Error(`cannot make cast value from "${value.type}" to  "${type}"`);
   return new NopValue();
 }
 
@@ -1058,7 +1063,7 @@ function buildElementAccessExpression(expr: ElementAccessExpression, context: Bu
 
   const type = own.type;
   let own_obj_type = ValueObjectType.CLASS_OBJECT;
-  if (IsBuiltInObjectType(type.kind)) {
+  if (IsBuiltInTypeButAny(type.kind)) {
     own_obj_type = ValueObjectType.BUILTIN_OBJECT;
   } else if (own.kind == SemanticsValueKind.CLASS_STATIC) {
     own_obj_type = ValueObjectType.CLASS_STATIC;
@@ -1069,7 +1074,7 @@ function buildElementAccessExpression(expr: ElementAccessExpression, context: Bu
   } else if (type.kind == ValueTypeKind.ANY) {
     own_obj_type = ValueObjectType.ANY_OBJECT;
   } else {
-    // TODO ERROR
+    throw Error(`Unknow type ${type} of ${own} in buildElementAccessExpression`);
     return new NopValue();
   }
 
