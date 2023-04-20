@@ -21,12 +21,17 @@ import {
 } from './runtime.js';
 
 
-export function IsBuiltInType(kind: ValueTypeKind) : boolean {
-  return (kind >= ValueTypeKind.PRIMITVE_BEGIN && kind < ValueTypeKind.PRIMITVE_END)
-         || kind == ValueTypeKind.ARRAY
+export function IsBuiltInObjectType(kind: ValueTypeKind) : boolean {
+     return kind == ValueTypeKind.ARRAY
 	 || kind == ValueTypeKind.SET
 	 || kind == ValueTypeKind.MAP
 	 || kind == ValueTypeKind.OBJECT;
+
+}
+
+export function IsBuiltInType(kind: ValueTypeKind) : boolean {
+  return (kind >= ValueTypeKind.PRIMITVE_BEGIN && kind < ValueTypeKind.PRIMITVE_END)
+         || IsBuiltInObjectType(kind);
 }
 
 const string_members : MemberInfo[] = [

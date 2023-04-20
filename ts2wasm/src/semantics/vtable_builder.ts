@@ -110,6 +110,10 @@ function buildInstanceVTable(classType: ClassType, module: ModuleNode) : VTable 
   // create vtable
   const vtable_members : VTableMember[] = [];
 
+  if (!classType.class_meta) {
+    throw Error(`Cannot find the class_meta for ${classType}`);
+  }
+
   const instance_meta = classType.class_meta.instance;
   const class_name = `${classType.class_meta.namespace}|${instance_meta.name}`;
 
@@ -482,8 +486,6 @@ function buildVTableOfValue(value: SemanticsValue, module: ModuleNode) {
     case SemanticsValueKind.OBJECT_GET_FIELD:
     case SemanticsValueKind.INTERFACE_GET_FIELD:
     case SemanticsValueKind.SUPER_GET_FIELD:
-    case SemanticsValueKind.INDEX_ELEMENT_GET:
-    case SemanticsValueKind.KEY_ELEMENT_GET:
       buildVTableOfValue((value as PropertyGetValue).owner, module);
       break;
     case SemanticsValueKind.BUILTIN_INDEX_GET:
@@ -503,8 +505,6 @@ function buildVTableOfValue(value: SemanticsValue, module: ModuleNode) {
     case SemanticsValueKind.OBJECT_SET_FIELD:
     case SemanticsValueKind.INTERFACE_SET_FIELD:
     case SemanticsValueKind.SUPER_SET_FIELD:
-    case SemanticsValueKind.INDEX_ELEMENT_SET:
-    case SemanticsValueKind.KEY_ELEMENT_SET:
       buildVTableOfValue((value as PropertySetValue).owner, module);
       if ((value as PropertySetValue).value)
         buildVTableOfValue((value as PropertySetValue).value!, module);

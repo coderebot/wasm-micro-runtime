@@ -114,6 +114,7 @@ import {
 import { BuildContext, ValueReferenceKind, SymbolKeyToString } from './builder_context.js'; 
 import {
     IsBuiltInType,
+    IsBuiltInObjectType,
     GetBuiltInMemberType
 } from './builtin.js';
 
@@ -131,6 +132,7 @@ enum ValueObjectType {
   CLASS_OBJECT,
   INTERFACE_OBJECT,
   SUPER_OBJECT,
+  ANY_OBJECT,
 }
 
 
@@ -406,9 +408,11 @@ function buildPropertyAccessExpression(expr: PropertyAccessExpression, context: 
 
   const type = own.type;
 
+  const ref_type = context.currentReference();
+
   let member : MemberInfo | undefined = undefined;
   let own_obj_type = ValueObjectType.CLASS_OBJECT;
-  if (IsBuiltInType(type.kind)) {
+  if (IsBuiltInObjectType(type.kind)) {
     member = GetBuiltInMemberType(type, member_name);
     own_obj_type = ValueObjectType.BUILTIN_OBJECT;
   } else if (own.kind == SemanticsValueKind.CLASS_STATIC) {
@@ -420,12 +424,17 @@ function buildPropertyAccessExpression(expr: PropertyAccessExpression, context: 
   } else if (type.kind == ValueTypeKind.INTERFACE) {
     member = GetMemberFromInterface(type as InterfaceType, member_name);
     own_obj_type = ValueObjectType.INTERFACE_OBJECT;
+  } else if (type.kind == ValueTypeKind.ANY) {
+    if (ref_type == ValueReferenceKind.LEFT) {
+      return new PropertySetValue(SemanticsValueKind.ANY_SET_FIELD, Primitive.Any, own, member_name);
+    } else {
+      return new PropertyGetValue(SemanticsValueKind.ANY_GET_FIELD, Primitive.Any, own, member_name);
+    }
   } else {
     // TODO ERROR
     return new NopValue();
   }
 
-  const ref_type = context.currentReference();
   let value_kind = getPropertyValueKindFrom(ref_type, member!.type, own_obj_type);
 
   if (member!.type == MemberType.METHOD || member!.type == MemberType.STATIC) {
@@ -552,10 +561,10 @@ function buildArrayLiteralExpression(expr: ArrayLiteralExpression, context: Buil
   let i = 0;
   for (const v of init_values) {
     context.pushReference(ValueReferenceKind.RIGHT);
-    const p = new PropertySetValue(SemanticsValueKind.INDEX_ELEMENT_SET,
+    const p = new ElementSetValue(SemanticsValueKind.BUILTIN_INDEX_SET,
 				   v.type,
                                    temp_var,
-				   i ++,
+				   new LiteralValue(Primitive.Int, i++),
 				   v);
     context.popReference();
     values.push(p);
@@ -719,7 +728,7 @@ export function newBinaryExprValue(type: ValueType|undefined, opKind: ValueBinar
 	return updateSetValue(left_value, right_value, opKind);
       }
     } else {
-      //console.log(`==== left: ${left_value}, right: ${right_value}`);
+      console.log(`==== left: ${left_value}, right: ${right_value}`);
       const target_type = typeTranslate(left_value.type, right_value.type);
       //console.log(`====== target_type: ${target_type}`);
       if (!target_type.equals(left_value.type))
@@ -748,8 +757,6 @@ function isPropertySetValue(v: SemanticsValue) : boolean {
        || v.kind == SemanticsValueKind.SUPER_SET_FIELD
        || v.kind == SemanticsValueKind.INTERFACE_SETTER
        || v.kind == SemanticsValueKind.INTERFACE_SET_FIELD
-       || v.kind == SemanticsValueKind.INDEX_ELEMENT_SET
-       || v.kind == SemanticsValueKind.KEY_ELEMENT_SET
        ;
 }
 
@@ -865,17 +872,21 @@ function buildCallExpression(expr: CallExpression, context: BuildContext) : Sema
 
   if (func instanceof PropertyGetValue) {
     const p = func as PropertyGetValue;
-    if (p.type.kind != ValueTypeKind.FUNCTION) {
+    if (p.type.kind != ValueTypeKind.FUNCTION && p.type.kind != ValueTypeKind.ANY) {
       throw Error(`Property Access Result is not a function`);
     }
-    const f_type = p.type as FunctionType;
+    const f_type = p.type.kind == ValueTypeKind.ANY
+                 ? GetPredefinedType(PredefinedTypeId.FUNC_ANY_ARRAY_ANY) as FunctionType
+	         : p.type as FunctionType;
     func = new PropertyCallValue(getCallValueTypeFrom(p.kind) as PropertyCallValueKind, f_type.returnType, f_type, p.owner, p.index);
   } else if (func instanceof ElementGetValue) {
     const e = func as ElementGetValue;
-    if (e.type.kind != ValueTypeKind.FUNCTION) {
+    if (e.type.kind != ValueTypeKind.FUNCTION && e.type.kind != ValueTypeKind.ANY) {
       throw Error(`Element Access Result is not a function`);
     }
-    const f_type = e.type as FunctionType;
+    const f_type = e.type.kind == ValueTypeKind.ANY
+                  ? GetPredefinedType(PredefinedTypeId.FUNC_ANY_ARRAY_ANY) as FunctionType
+	          : e.type as FunctionType;
     func = new ElementCallValue(getCallValueTypeFrom(e.kind) as ElementCallValueKind, f_type.returnType, f_type, e.owner, e.index);
   } else {
     if (func.kind == SemanticsValueKind.SUPER) {  // create the super call
@@ -894,6 +905,9 @@ function buildCallExpression(expr: CallExpression, context: BuildContext) : Sema
 	   || func.kind == SemanticsValueKind.OBJECT_METHOD_CALL
 	   || func.kind == SemanticsValueKind.OBJECT_INDEX_CALL
 	   || func.kind == SemanticsValueKind.OBJECT_KEY_CALL
+	   || func.kind == SemanticsValueKind.ANY_GET_CALL
+	   || func.kind == SemanticsValueKind.ANY_INDEX_CALL
+	   || func.kind == SemanticsValueKind.ANY_KEY_CALL
 	   || func.kind == SemanticsValueKind.INTERFACE_METHOD_CALL
 	   || func.kind == SemanticsValueKind.INTERFACE_INDEX_CALL
 	   || func.kind == SemanticsValueKind.INTERFACE_KEY_CALL
@@ -993,6 +1007,15 @@ function getElementValueKindFrom(refType: ValueReferenceKind, is_index: boolean,
 	                     ? SemanticsValueKind.INTERFACE_KEY_SET
                              : SemanticsValueKind.INTERFACE_KEY_GET;
        break;
+       case ValueObjectType.ANY_OBJECT:
+	if (is_index)
+              return refType == ValueReferenceKind.LEFT
+	                       ? SemanticsValueKind.ANY_INDEX_SET
+			       : SemanticsValueKind.ANY_INDEX_GET;
+        else
+	      return refType == ValueReferenceKind.LEFT
+                               ? SemanticsValueKind.ANY_KEY_SET
+			       : SemanticsValueKind.ANY_KEY_GET;
     }
 
     return SemanticsValueKind.INTERFACE_GET_FIELD; 
@@ -1010,7 +1033,7 @@ function buildElementAccessExpression(expr: ElementAccessExpression, context: Bu
 
   const type = own.type;
   let own_obj_type = ValueObjectType.CLASS_OBJECT;
-  if (IsBuiltInType(type.kind)) {
+  if (IsBuiltInObjectType(type.kind)) {
     own_obj_type = ValueObjectType.BUILTIN_OBJECT;
   } else if (own.kind == SemanticsValueKind.CLASS_STATIC) {
     own_obj_type = ValueObjectType.CLASS_STATIC;
@@ -1018,6 +1041,8 @@ function buildElementAccessExpression(expr: ElementAccessExpression, context: Bu
     own_obj_type = ValueObjectType.CLASS_OBJECT;
   } else if (type.kind == ValueTypeKind.INTERFACE) {
     own_obj_type = ValueObjectType.INTERFACE_OBJECT;
+  } else if (type.kind == ValueTypeKind.ANY) {
+    own_obj_type = ValueObjectType.ANY_OBJECT;
   } else {
     // TODO ERROR
     return new NopValue();
@@ -1180,7 +1205,7 @@ export function buildExpression(expr: Expression, context: BuildContext) : Seman
        case ts.SyntaxKind.ArrowFunction:
          return buildFunctionExpression(expr as FunctionExpression, context);
        case ts.SyntaxKind.ParenthesizedExpression:
-         break;
+         return buildExpression((expr as ParenthesizedExpression).parentesizedExpr, context);
        case ts.SyntaxKind.PrefixUnaryExpression:
        case ts.SyntaxKind.PostfixUnaryExpression:
          return buildUnaryExpression(expr as UnaryExpression, context);
@@ -1190,6 +1215,7 @@ export function buildExpression(expr: Expression, context: BuildContext) : Seman
    catch(e: any)
    {
      console.log(e.message);
+     console.log(e.stack);
      const tsNode = expr.tsNode!;
      const sourceFile = tsNode.getSourceFile();
      const start = tsNode.getStart(sourceFile);

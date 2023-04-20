@@ -124,11 +124,16 @@ export enum SemanticsValueKind {
     OBJECT_INSTANCE_OF,
     INTERFACE_INSTANCE_OF,
 
-    INDEX_ELEMENT_GET,
-    INDEX_ELEMENT_SET,
+    ANY_GET_FIELD,
+    ANY_SET_FIELD,
+    ANY_GET_CALL,
+    ANY_INDEX_GET,
+    ANY_INDEX_SET,
+    ANY_KEY_GET,
+    ANY_KEY_SET,
+    ANY_INDEX_CALL,
+    ANY_KEY_CALL,
 
-    KEY_ELEMENT_GET,
-    KEY_ELEMENT_SET,
     GROUP_VALUE,
 }
 
@@ -414,8 +419,8 @@ export type PropertyGetValueKind =
     | SemanticsValueKind.OBJECT_GET_FIELD
     | SemanticsValueKind.INTERFACE_GET_FIELD
     | SemanticsValueKind.SUPER_GET_FIELD
-    | SemanticsValueKind.INDEX_ELEMENT_GET
-    | SemanticsValueKind.KEY_ELEMENT_GET;
+    | SemanticsValueKind.ANY_GET_FIELD
+    ;
 
 export class PropertyGetValue extends SemanticsValue {
     constructor(
@@ -472,8 +477,9 @@ export type PropertySetValueKind =
     | SemanticsValueKind.OBJECT_SET_FIELD
     | SemanticsValueKind.INTERFACE_SET_FIELD
     | SemanticsValueKind.SUPER_SET_FIELD
-    | SemanticsValueKind.INDEX_ELEMENT_SET
-    | SemanticsValueKind.KEY_ELEMENT_SET;
+    | SemanticsValueKind.ANY_SET_FIELD
+    ;
+
 
 export class PropertySetValue extends SemanticsValue {
     constructor(
