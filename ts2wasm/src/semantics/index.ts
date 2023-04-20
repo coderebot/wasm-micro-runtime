@@ -52,9 +52,12 @@ import {
     InterfaceType,
     ClassType,
     FunctionType,
-    GetPredefinedType,
     PredefinedTypeId,
 } from './value_types.js';
+
+import {
+    GetPredefinedType,
+} from './predefined_types.js';
 
 import {
     BuildEnv,

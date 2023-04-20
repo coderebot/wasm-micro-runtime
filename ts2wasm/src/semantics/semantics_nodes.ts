@@ -38,6 +38,9 @@ import {
     ClassType,
     FunctionType,
     PredefinedTypeId,
+ } from './value_types.js';
+
+ import {
     PredefinedArrayType,
     PredefinedSetType,
     PredefinedMapType,
@@ -46,7 +49,7 @@ import {
     GetPredefinedArrayType,
     GetPredefinedSetType,
     GetPredefinedMapType,
- } from './value_types.js';
+ } from './predefined_types.js';
 
 export enum SemanticsKind {
     EMPTY,
@@ -345,7 +348,7 @@ export class ContinueNode extends SemanticsNode {
 
 
 export class ModuleNode extends SemanticsNode {
-    public metas: Map<number, ClassMetaInfo> = new Map();
+    public metas: Map<Type, ClassMetaInfo> = new Map();
     public vtables: Map<number, VTable[]> = new Map();
     public types: Map<Type, ValueType> = new Map();
     public typeByIds: Map<number, ValueType> = new Map();
@@ -466,6 +469,8 @@ export class ModuleNode extends SemanticsNode {
 	 case TypeKind.ANY:     return Primitive.Any;
 	 case TypeKind.NUMBER:  return Primitive.Number;
 	 case TypeKind.STRING:  return Primitive.String;
+	 case TypeKind.NULL:    return Primitive.Null;
+	 case TypeKind.UNDEFINED: return Primitive.Undefined;
        }
 
        let valueType = this.types.get(type);

@@ -27,6 +27,7 @@ export const enum TypeKind {
     CLASS = 'class',
     NULL = 'null',
     INTERFACE = 'interface',
+    UNDEFINED = 'undefined',
     UNKNOWN = 'unknown',
 }
 
@@ -66,6 +67,10 @@ export class Primitive extends Type {
             case 'null': {
                 this.typeKind = TypeKind.NULL;
                 break;
+	    }
+	    case 'undefined': {
+	        this.typeKind = TypeKind.UNDEFINED;
+                break;
             }
             default: {
                 this.typeKind = TypeKind.UNKNOWN;
@@ -81,6 +86,7 @@ export const builtinTypes = new Map<string, Type>([
     ['any', new Primitive('any')],
     ['void', new Primitive('void')],
     ['null', new Primitive('null')],
+    ['undefined', new Primitive('undefined')],
 ]);
 
 export interface TsClassField {
@@ -480,6 +486,9 @@ export default class TypeResolver {
         if (typeFlag & ts.TypeFlags.Null) {
             return builtinTypes.get('null')!;
         }
+	if (typeFlag & ts.TypeFlags.Undefined) {
+            return builtinTypes.get('undefined')!;
+	}
         // union type ==> type of first elem, iff all types are same, otherwise, any
         if (type.isUnion()) {
             const nodeTypeArray = type.types.map((elem) => {

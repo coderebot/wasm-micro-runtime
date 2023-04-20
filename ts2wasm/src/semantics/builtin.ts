@@ -99,7 +99,7 @@ function createArrayClassMeta(arrType: ArrayType) : ClassMetaInfo {
 
 const collectionTypes = new Map<ValueType, ClassMetaInfo>();
 
-function createCollectionType(type: ValueType) : ClassMetaInfo | undefined {
+export function createCollectionType(type: ValueType) : ClassMetaInfo | undefined {
   let class_meta : ClassMetaInfo | undefined = undefined;
   if (type.kind == ValueTypeKind.ARRAY) {
     class_meta = createArrayClassMeta(type as ArrayType); 

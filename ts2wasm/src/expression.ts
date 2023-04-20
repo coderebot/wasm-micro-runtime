@@ -43,6 +43,12 @@ export class NullKeywordExpression extends Expression {
     }
 }
 
+export class UndefinedKeywordExpression extends Expression {
+    constructor() {
+        super(ts.SyntaxKind.UndefinedKeyword);
+    }
+}
+
 export class NumberLiteralExpression extends Expression {
     private value: number;
 
@@ -367,6 +373,11 @@ export default class ExpressionProcessor {
                 nullExpr.setExprType(this.typeResolver.generateNodeType(node));
                 return nullExpr;
             }
+	    case ts.SyntaxKind.UndefinedKeyword: {
+	        const undefinedExpr = new UndefinedKeywordExpression();
+		undefinedExpr.setExprType(this.typeResolver.generateNodeType(node));
+		return undefinedExpr;
+	    }
             case ts.SyntaxKind.NumericLiteral: {
                 const numberLiteralExpr = new NumberLiteralExpression(
                     parseFloat((<ts.NumericLiteral>node).getText()),

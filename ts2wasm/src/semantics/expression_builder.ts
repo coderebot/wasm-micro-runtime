@@ -17,9 +17,12 @@ import {
     InterfaceType,
     ClassType,
     FunctionType,
-    GetPredefinedType,
     PredefinedTypeId,
 } from './value_types.js';
+
+import {
+    GetPredefinedType,
+} from './predefined_types.js';
 
 import { DumpWriter, CreateDefaultDumpWriter } from './dump.js';
 
@@ -115,7 +118,8 @@ import { BuildContext, ValueReferenceKind, SymbolKeyToString } from './builder_c
 import {
     IsBuiltInType,
     IsBuiltInObjectType,
-    GetBuiltInMemberType
+    GetBuiltInMemberType,
+    createCollectionType,
 } from './builtin.js';
 
 import {
@@ -172,7 +176,7 @@ export function createMeta(clazz: TSClass, context: BuildContext, isObjectLitera
 
     const base_class = clazz.getBase();
     if (base_class != null) {
-      base = module.metas.get(base_class.typeId);
+      base = module.metas.get(base_class);
       if (!base) {
         base = createMeta(base_class, context, true);
       }
@@ -270,8 +274,25 @@ export function createMeta(clazz: TSClass, context: BuildContext, isObjectLitera
       }
     }
     
-    module.metas.set(clazz.typeId, class_meta);
+    module.metas.set(clazz, class_meta);
     return class_meta;
+}
+
+function getCollectionMeta(type: ValueType, tstype: Type|undefined, context: BuildContext) : ClassMetaInfo | undefined {
+  const meta = createCollectionType(type);
+  if (meta && tstype) {
+    context.module.metas.set(tstype, meta);
+  }
+
+  console.log(`====== create meta for ${type} ${meta}`);
+
+  return meta;
+}
+
+function createArrayType(context: BuildContext, element_type: ValueType, arr_type?: Type) : ValueType {
+  const value_type = new ArrayType(context.nextTypeId(), element_type);
+  value_type.class_meta = getCollectionMeta(value_type, arr_type, context);
+  return value_type;
 }
 
 export function createType(context: BuildContext, type: Type, isObjectLiteral: boolean = false) : ValueType {
@@ -290,7 +311,7 @@ export function createType(context: BuildContext, type: Type, isObjectLiteral: b
     {
       const arr = type as TSArray;
       const element_type = createType(context, arr.elementType);
-      value_type = new ArrayType(context.nextTypeId(), element_type);
+      value_type = createArrayType(context, element_type, arr);
       break;
     }
     case TypeKind.FUNCTION:
@@ -471,6 +492,10 @@ function buildIdentiferExpression(expr: IdentifierExpression, context: BuildCont
 			var_decl.index);
   }
 
+  if (name == 'undefined') {
+    return new LiteralValue(Primitive.Undefined, undefined);
+  }
+
   throw Error(`Cannot find the idenentify "${name}"`);
 
   return new NopValue();
@@ -545,7 +570,7 @@ function buildArrayLiteralExpression(expr: ArrayLiteralExpression, context: Buil
   let array_type = context.module.findArrayValueType(element_type);
   if (!array_type) {
     // create array type
-    array_type = new ArrayType(-1, element_type);
+    array_type = createArrayType(context, element_type);
   }
 
 
@@ -1168,6 +1193,8 @@ export function buildExpression(expr: Expression, context: BuildContext) : Seman
   
        case ts.SyntaxKind.NullKeyword:
          return new LiteralValue(Primitive.Null, null);
+       case ts.SyntaxKind.UndefinedKeyword:
+	 return new LiteralValue(Primitive.Undefined, undefined);
        case ts.SyntaxKind.NumericLiteral:
          {
   	 const n = (expr as NumberLiteralExpression).expressionValue;
