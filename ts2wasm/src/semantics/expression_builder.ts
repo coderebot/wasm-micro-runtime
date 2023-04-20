@@ -1188,13 +1188,28 @@ function buildUnaryExpression(expr: UnaryExpression, context: BuildContext) : Se
 }
 
 function buildFunctionExpression(expr: FunctionExpression, context: BuildContext) : SemanticsValue {
-  const func = context.globalSymbols.get(expr.funcScope);
-  if (!func || !(func instanceof SemanticsNode) || (func! as SemanticsNode).kind != SemanticsKind.FUNCTION) {
+  const func = context.findSymbolKey(expr.funcScope);
+  if (!func || (   !((func instanceof SemanticsNode) && (func! as SemanticsNode).kind == SemanticsKind.FUNCTION)
+                && !((func instanceof SemanticsValue) && (func! as SemanticsValue).type.kind == ValueTypeKind.FUNCTION))) {
     throw Error(`Cannot found the function ${expr.funcScope.funcName}`);
   }
 
-  const func_node = (func as SemanticsNode) as FunctionDeclareNode;
 
+  let func_node : FunctionDeclareNode | undefined = undefined;
+  if ((func as unknown) instanceof SemanticsValue) {
+    /* const func = function() { ... } */
+    /* function is anonymous */
+    const value = func as SemanticsValue;
+    if (value instanceof VarValue && ((value as VarValue).ref instanceof FunctionDeclareNode)) {
+      func_node = (value as VarValue).ref as FunctionDeclareNode;
+    }
+  } else {
+    func_node = (func as SemanticsNode) as FunctionDeclareNode;
+  }
+
+  if (!func_node) {
+    throw Error(`Cannot get the right function declearation from functionscope ${expr.funcScope.funcName}, function: ${func}`);
+  }
   // new Closure Function
   return new NewClosureFunction(func_node);
 }
