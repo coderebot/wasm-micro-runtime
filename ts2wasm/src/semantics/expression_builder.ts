@@ -129,6 +129,7 @@ import {
     MemberInfo,
     MemberType,
     ClassMetaFlag,
+    FindMemberFromMeta,
 } from './runtime.js';
 
 enum ValueObjectType {
@@ -147,13 +148,6 @@ function toInt(n : number) : number {  return (n|0); }
 
 function findMemberInfo(meta: ObjectMetaInfo, name: string) : MemberInfo | undefined {
   return meta.members.find(m => m.name == name);
-}
-
-function FindMemberFromMeta(meta: ObjectMetaInfo, name: string) : MemberInfo | undefined {
-  for (const m of meta.members) {
-    if (m.name == name) return m;
-  }
-  return undefined;
 }
 
 function getMethodType(k: FunctionKind): MemberType {
@@ -341,19 +335,19 @@ export function createType(context: BuildContext, type: Type, isObjectLiteral: b
   return value_type!;
 }
 
-function GetMemberFromClassStatic(clazz: ClassType, name: string) : MemberInfo | undefined {
+function GetMemberFromClassStatic(clazz: ClassType, name: string, as_write: boolean) : MemberInfo | undefined {
   const static_meta = clazz.class_meta.clazz;
   if (!static_meta) return undefined;
   
-  return FindMemberFromMeta(static_meta, name);
+  return FindMemberFromMeta(static_meta, name, as_write);
 }
 
-function GetMemberFromClassInstance(clazz: ClassType, name: string) : MemberInfo | undefined {
-  return FindMemberFromMeta(clazz.class_meta.instance, name);
+function GetMemberFromClassInstance(clazz: ClassType, name: string, as_write: boolean) : MemberInfo | undefined {
+  return FindMemberFromMeta(clazz.class_meta.instance, name, as_write);
 }
 
-function GetMemberFromInterface(intf: InterfaceType, name: string) : MemberInfo | undefined {
-  return FindMemberFromMeta(intf.class_meta.instance, name);
+function GetMemberFromInterface(intf: InterfaceType, name: string, as_write: boolean) : MemberInfo | undefined {
+  return FindMemberFromMeta(intf.class_meta.instance, name, as_write);
 }
 
 function getPropertyValueKindFrom(refType: ValueReferenceKind, member_type: MemberType, obj_type: ValueObjectType) : SemanticsValueKind {
@@ -364,10 +358,10 @@ function getPropertyValueKindFrom(refType: ValueReferenceKind, member_type: Memb
               return refType == ValueReferenceKind.LEFT
 	                ? SemanticsValueKind.BUILTIN_SET_FIELD
 			: SemanticsValueKind.BUILTIN_GET_FIELD;
-           case MemberType.ACCESSOR:
-              return refType == ValueReferenceKind.LEFT
-	                ? SemanticsValueKind.BUILTIN_SETTER
-                        : SemanticsValueKind.BUILTIN_GETTER;
+	   case MemberType.GETTER:
+	      return SemanticsValueKind.BUILTIN_GETTER;
+	   case MemberType.SETTER:
+	      return SemanticsValueKind.BUILTIN_SETTER;
            case MemberType.METHOD:
               return SemanticsValueKind.BUILTIN_METHOD_CALL;
         }
@@ -375,7 +369,6 @@ function getPropertyValueKindFrom(refType: ValueReferenceKind, member_type: Memb
       case ValueObjectType.CLASS_STATIC:
         switch(member_type) {
            case MemberType.FIELD :
-           case MemberType.ACCESSOR :
              return refType == ValueReferenceKind.LEFT
 	                    ? SemanticsValueKind.CLASS_STATIC_SET_FIELD
 			    : SemanticsValueKind.CLASS_STATIC_GET_FIELD;
@@ -389,10 +382,10 @@ function getPropertyValueKindFrom(refType: ValueReferenceKind, member_type: Memb
             return refType == ValueReferenceKind.LEFT
 	                  ? SemanticsValueKind.OBJECT_SET_FIELD
                           : SemanticsValueKind.OBJECT_GET_FIELD;
-          case MemberType.ACCESSOR :
-            return refType == ValueReferenceKind.LEFT
-	                   ? SemanticsValueKind.OBJECT_SETTER
-                           : SemanticsValueKind.OBJECT_GETTER;
+          case MemberType.GETTER :
+             return SemanticsValueKind.OBJECT_GETTER;
+          case MemberType.SETTER :
+	     return SemanticsValueKind.OBJECT_SETTER;
           case MemberType.METHOD :
             return SemanticsValueKind.OBJECT_METHOD_CALL;
         }
@@ -403,10 +396,10 @@ function getPropertyValueKindFrom(refType: ValueReferenceKind, member_type: Memb
               return refType == ValueReferenceKind.LEFT
 	                       ?  SemanticsValueKind.INTERFACE_SET_FIELD
                                : SemanticsValueKind.INTERFACE_GET_FIELD;
-           case MemberType.ACCESSOR :
-              return refType == ValueReferenceKind.LEFT
-	                     ? SemanticsValueKind.INTERFACE_SETTER
-                             : SemanticsValueKind.INTERFACE_GETTER;
+           case MemberType.GETTER :
+              return SemanticsValueKind.INTERFACE_GETTER;
+           case MemberType.SETTER :
+              return SemanticsValueKind.INTERFACE_SETTER;
            case MemberType.METHOD :
               return SemanticsValueKind.INTERFACE_METHOD_CALL;
        }
@@ -431,20 +424,21 @@ function buildPropertyAccessExpression(expr: PropertyAccessExpression, context: 
   const type = own.type;
 
   const ref_type = context.currentReference();
+  const member_as_write = ref_type == ValueReferenceKind.LEFT;
 
   let member : MemberInfo | undefined = undefined;
   let own_obj_type = ValueObjectType.CLASS_OBJECT;
   if (IsBuiltInTypeButAny(type.kind)) {
-    member = GetBuiltInMemberType(type, member_name);
+    member = GetBuiltInMemberType(type, member_name, member_as_write);
     own_obj_type = ValueObjectType.BUILTIN_OBJECT;
   } else if (own.kind == SemanticsValueKind.CLASS_STATIC) {
-    member = GetMemberFromClassStatic((own as ClassStaticValue).classType, member_name);
+    member = GetMemberFromClassStatic((own as ClassStaticValue).classType, member_name, member_as_write);
     own_obj_type = ValueObjectType.CLASS_STATIC;
   } else if (type.kind == ValueTypeKind.CLASS) {
-    member = GetMemberFromClassInstance(type as ClassType, member_name);
+    member = GetMemberFromClassInstance(type as ClassType, member_name, member_as_write);
     own_obj_type = ValueObjectType.CLASS_OBJECT;
   } else if (type.kind == ValueTypeKind.INTERFACE) {
-    member = GetMemberFromInterface(type as InterfaceType, member_name);
+    member = GetMemberFromInterface(type as InterfaceType, member_name, member_as_write);
     own_obj_type = ValueObjectType.INTERFACE_OBJECT;
   } else if (type.kind == ValueTypeKind.ANY) {
     if (ref_type == ValueReferenceKind.LEFT) {
@@ -469,10 +463,20 @@ function buildPropertyAccessExpression(expr: PropertyAccessExpression, context: 
     return new PropertyCallValue(value_kind as PropertyCallValueKind, func_type.returnType, func_type, own, member!.index);
   }
 
+  let result_type = member!.valueType;
+  if (result_type.kind == ValueTypeKind.FUNCTION) {
+    if (member!.type == MemberType.GETTER) {
+      result_type = (result_type as FunctionType).returnType;
+    }
+    else if ( member!.type == MemberType.SETTER) {
+      result_type = (result_type as FunctionType).argumentsType[0];
+    }
+  }
+
   if (ref_type == ValueReferenceKind.LEFT) {
-    return new PropertySetValue(value_kind as PropertySetValueKind, member!.valueType as ValueType, own, member!.index);
+    return new PropertySetValue(value_kind as PropertySetValueKind, result_type as ValueType, own, member!.index);
   } else {
-    return new PropertyGetValue(value_kind as PropertyGetValueKind, member!.valueType as ValueType, own, member!.index);
+    return new PropertyGetValue(value_kind as PropertyGetValueKind, result_type as ValueType, own, member!.index);
   }
 }
 
@@ -1122,7 +1126,7 @@ function buildElementAccessExpression(expr: ElementAccessExpression, context: Bu
 function getCurrentClassType(context: BuildContext) : TSClass | undefined {
   let scope : Scope | null = context.top().scope;
 
-  while(scope != null && scope.kind == ScopeKind.ClassScope) {
+  while(scope != null && scope.kind != ScopeKind.ClassScope) {
     scope = scope.parent ? scope.parent : null;
   }
 
@@ -1149,7 +1153,7 @@ function buildThisValue(context: BuildContext) : SemanticsValue {
 function buildSuperValue(context: BuildContext) : SemanticsValue {
   const clazz = getCurrentClassType(context);
   if (!clazz) {
-    throw Error("cannot find the this in context for super");
+    throw Error("cannot find the current class type for super");
   }
 
   const super_class = clazz!.getBase();

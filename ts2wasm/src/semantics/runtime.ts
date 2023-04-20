@@ -9,11 +9,11 @@ import { Type } from '../type.js';
 export enum MemberType {
     FIELD,
     METHOD,
-    ACCESSOR,
     GETTER,
     SETTER,
     CONSTRUCTOR,
     STATIC,
+    ACCESSOR,
 }
 
 export interface MemberInfo {
@@ -51,4 +51,16 @@ export type VTableMember = number | string;
 export interface VTable {
     meta: ObjectMetaInfo;
     members: VTableMember[];
+}
+
+export function FindMemberFromMeta(meta: ObjectMetaInfo, name: string, as_writer:boolean = false) : MemberInfo | undefined {
+  for (const m of meta.members) {
+    if (m.name == name) {
+      if (m.type == MemberType.GETTER && !as_writer) return m;
+      if (m.type == MemberType.SETTER && as_writer) return m;
+      return m;
+    }
+  }
+
+  return undefined;
 }

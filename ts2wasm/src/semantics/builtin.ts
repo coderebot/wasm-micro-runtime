@@ -20,6 +20,7 @@ import {
     ObjectMetaInfo,
     ClassMetaInfo,
     ClassMetaFlag,
+    FindMemberFromMeta,
 } from './runtime.js';
 
 
@@ -47,9 +48,11 @@ export function IsBuiltInTypeButAny(kind: ValueTypeKind) : boolean {
 const FuncStringString = new FunctionType(PredefinedTypeId.BUILTIN_TYPE_BEGIN + 1,
 					  Primitive.String, [Primitive.String], false);
 
+const FuncGetLength = new FunctionType(PredefinedTypeId.BUILTIN_TYPE_BEGIN + 2,
+				       Primitive.Int, [], false);
 
 const string_members : MemberInfo[] = [
-  { name: 'length', type: MemberType.ACCESSOR, index: 0, valueType: Primitive.Int},
+  { name: 'length', type: MemberType.GETTER, index: 0, valueType: FuncGetLength},
   { name: 'slice', type: MemberType.METHOD, index: 1, valueType: FuncStringString},
   { name: 'concat', type: MemberType.METHOD, index: 2, valueType: FuncStringString},
 ]
@@ -105,7 +108,7 @@ function createArrayClassMeta(arrType: ArrayType) : ClassMetaInfo {
       name: 'Array',
       typeId: ValueTypeKind.ARRAY,
       members: [
-        {name: 'length', type: MemberType.ACCESSOR, index: 0, valueType: Primitive.Int},
+        {name: 'length', type: MemberType.GETTER, index: 0, valueType: FuncGetLength},
 	{name: 'slice', type: MemberType.METHOD, index: 1, valueType: new FunctionType(-1, arrType, [Primitive.Int, Primitive.Int], false)}
       ]
     }
@@ -126,7 +129,7 @@ export function createCollectionType(type: ValueType) : ClassMetaInfo | undefine
   return class_meta;
 }
 
-export function GetBuiltInMemberType(type: ValueType, name: string) : MemberInfo | undefined {
+export function GetBuiltInMemberType(type: ValueType, name: string, as_write: boolean) : MemberInfo | undefined {
   let class_meta : ClassMetaInfo | undefined = undefined;
   for (const bt of PrimtiveTypeInfos) {
     if (bt.instance && bt.instance.typeId == type.kind) {
@@ -150,11 +153,6 @@ export function GetBuiltInMemberType(type: ValueType, name: string) : MemberInfo
 
   if (!class_meta) return undefined;
 
-  for (const m of class_meta!.instance.members)
-  {
-    if (m.name == name) return m;
-  }
-
-  return undefined;
+  return FindMemberFromMeta(class_meta!.instance, name, as_write);
 }
 
