@@ -29,6 +29,7 @@ export enum ValueTypeKind {
     FUNCTION,
     UNION,
     INTERSECTION,
+    NAMESPACE,
 }
 
 
@@ -43,6 +44,7 @@ export enum PredefinedTypeId {
     RAW_STRING,
     STRING,
     ANY,
+    NAMESPACE,
     FUNC_VOID_VOID,
     FUNC_VOID_ARRAY_ANY,
     FUNC_ANY_ARRAY_ANY,
@@ -107,6 +109,7 @@ export const Primitive = {
     RawString: new PrimitiveType(ValueTypeKind.RAW_STRING, PredefinedTypeId.RAW_STRING),
     String: new PrimitiveType(ValueTypeKind.STRING, PredefinedTypeId.STRING),
     Any: new PrimitiveType(ValueTypeKind.ANY, PredefinedTypeId.ANY),
+    Namespace: new PrimitiveType(ValueTypeKind.NAMESPACE, PredefinedTypeId.NAMESPACE),
 };
 
 

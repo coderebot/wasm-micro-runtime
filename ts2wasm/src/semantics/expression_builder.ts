@@ -100,7 +100,8 @@ import {
     Scope,
     ScopeKind,
     ClassScope,
-    FunctionScope
+    FunctionScope,
+    NamespaceScope,
 }  from '../scope.js';
 
 import {
@@ -114,7 +115,7 @@ import {
     TSArray,
 }  from '../type.js';
 
-import { BuildContext, ValueReferenceKind, SymbolKeyToString } from './builder_context.js'; 
+import { BuildContext, ValueReferenceKind, SymbolKeyToString, SymbolKey, SymbolValue } from './builder_context.js'; 
 import {
     IsBuiltInType,
     IsBuiltInTypeButAny,
@@ -409,6 +410,34 @@ function getPropertyValueKindFrom(refType: ValueReferenceKind, member_type: Memb
     return SemanticsValueKind.INTERFACE_GET_FIELD; 
 }
 
+function getValueFromNamespace(ns: VarValue, member: string, context: BuildContext) : SemanticsValue {
+  if (ns.type.kind != ValueTypeKind.NAMESPACE) {
+    throw Error(`${ns} is not a namespace`);
+  }
+
+  const ns_scope = ns.ref as NamespaceScope;
+
+  // find the name in the ns_scope
+  const name = ns_scope.findIdentifier(member, true);
+  if (!name) {
+    throw Error(`cannot find "${member}" in ${ns}`);
+  }
+
+  const value = context.globalSymbols.get(name!);
+
+  if (!value) {
+    throw Error(`undefiend "${member}" in ${ns} (${name})`);
+  }
+
+  const result = SymbolValueToSemanticsValue(value!, context);
+
+  if (result) return result;
+
+  throw Error(`cannot create value "${member}" in ${ns}(${name})`);
+  return new NopValue();
+}
+
+
 function buildPropertyAccessExpression(expr: PropertyAccessExpression, context: BuildContext) : SemanticsValue {
   context.pushReference(ValueReferenceKind.RIGHT);
   const own = buildExpression(expr.propertyAccessExpr, context);
@@ -446,6 +475,8 @@ function buildPropertyAccessExpression(expr: PropertyAccessExpression, context: 
     } else {
       return new PropertyGetValue(SemanticsValueKind.ANY_GET_FIELD, Primitive.Any, own, member_name);
     }
+  } else if (type.kind == ValueTypeKind.NAMESPACE) {
+    return getValueFromNamespace(own as VarValue, member_name, context);
   } else {
     throw Error(`Unknow own type ${type} of ${own} in buildPropertyAccessExpression`);
     return new NopValue();
@@ -480,29 +511,38 @@ function buildPropertyAccessExpression(expr: PropertyAccessExpression, context: 
   }
 }
 
-function buildIdentiferExpression(expr: IdentifierExpression, context: BuildContext) : SemanticsValue {
-  const name = expr.identifierName;
+function SymbolValueToSemanticsValue(value: SymbolValue, context: BuildContext) : SemanticsValue | undefined {
+  if (value instanceof SemanticsValue) return value as SemanticsValue;
 
-  const ret = context.findSymbol(name);
-  if (ret instanceof SemanticsValue) return ret as SemanticsValue;
-
-  if (ret instanceof FunctionDeclareNode) {
-    const func_node = ret as FunctionDeclareNode;
+  if (value instanceof FunctionDeclareNode) {
+    const func_node = value as FunctionDeclareNode;
     return new VarValue(SemanticsValueKind.GLOBAL_CONST,
 			func_node.funcType,
 			func_node,
 			-1);
   }
-  if (ret instanceof VarDeclareNode) {
-    const var_decl = ret as VarDeclareNode;
+  if (value instanceof VarDeclareNode) {
+    const var_decl = value as VarDeclareNode;
     return new VarValue(var_decl.storageType as VarValueKind, 
 			var_decl.type,
 			var_decl,
 			var_decl.index);
   }
 
+  return undefined;
+}
+
+function buildIdentiferExpression(expr: IdentifierExpression, context: BuildContext) : SemanticsValue {
+  const name = expr.identifierName;
+
   if (name == 'undefined') {
     return new LiteralValue(Primitive.Undefined, undefined);
+  }
+
+  const ret = context.findSymbol(name);
+  if (ret) {
+    const result = SymbolValueToSemanticsValue(ret, context);
+    if (result) return result;
   }
 
   throw Error(`Cannot find the idenentify "${name}"`);

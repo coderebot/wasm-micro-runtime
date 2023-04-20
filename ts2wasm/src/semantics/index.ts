@@ -81,6 +81,7 @@ import {
     FunctionScope,
     ClassScope,
     BlockScope,
+    NamespaceScope,
 } from '../scope.js';
 
 import {
@@ -117,26 +118,6 @@ function processTypes(context: BuildContext, globalScopes: Array<GlobalScope>) {
     }
 }
 
-function processGlobalVars(context: BuildContext, globalScopes: Array<GlobalScope>) {
-    let index = 1;
-    const module = context.module;
-    for (const g of globalScopes) {
-      for (const v of g.varArray) {
-        if (v.isLocalVar())  continue;
-	console.log(`=== processGlobalVars ${v.mangledName} ${v.varName} declare ${v.isDeclare()}`);
-	const storage : VarStorageType = v.isConst() || v.isReadOnly()
-	              ? SemanticsValueKind.GLOBAL_CONST : SemanticsValueKind.GLOBAL_VAR;
-        let type = module.findValueTypeByType(v.varType);
-	if (!type) type = Primitive.Any;
-
-	const var_decl = new VarDeclareNode(storage, type, v.mangledName, index++, 0);
-
-	module.globalVars.push(var_decl);
-	context.globalSymbols.set(v, var_decl);
-      }
-    }
-}
-
 function buildStatements(context: BuildContext, scope: Scope) : SemanticsNode[] {
 
     const statements : SemanticsNode[] = [];
@@ -160,9 +141,7 @@ function buildStatements(context: BuildContext, scope: Scope) : SemanticsNode[] 
 }
 
 function processGlobalStatements(context: BuildContext, g: GlobalScope) {
-    context.push(g);
     const statements = buildStatements(context, g);
-    context.pop();
     const block = new BlockNode(statements);
 
 
@@ -184,10 +163,10 @@ function getFunctionOwnKind(f: FunctionScope) : FunctionOwnKind {
 }
 
 function createFunctionDeclareNode(context: BuildContext, f: FunctionScope) : FunctionDeclareNode {
-    let name = f.funcName;
-    if (f.className) {
-       name = f.className + "_" + name;
-    }
+    let name = f.mangledName; //f.funcName;
+    //if (f.className) {
+    //   name = f.className + "_" + name;
+    //}
        
     const func_type = createType(context, f.funcType) as FunctionType;
     
@@ -228,20 +207,50 @@ function createFunctionDeclareNode(context: BuildContext, f: FunctionScope) : Fu
     return func;
 }
 
-function processGlobalObjs(context: BuildContext, globalScope: GlobalScope) {
-    for (const scope of globalScope.children) {
-      if (scope.kind == ScopeKind.FunctionScope) {
-	 const func = createFunctionDeclareNode(context, scope as FunctionScope);
-         context.globalSymbols.set(scope, new VarValue(SemanticsValueKind.GLOBAL_CONST, func.funcType, func, func.name));
-         context.module.functions.push(func);
-      } else if (scope.kind == ScopeKind.ClassScope) {
-	 const class_scope = scope as ClassScope;
-         const type = createType(context, class_scope.classType);
-	 const class_value = new ClassStaticValue(type as ClassType);
-	 context.globalSymbols.set(class_scope, class_value);
-	 context.globalSymbols.set(class_scope.classType, class_value);
+function processScopesGlobalObjs(context: BuildContext, scopes: Scope[]) {
+  for (const scope of scopes) {
+    processGlobalObjs(context, scope);
+  }
+}
+
+function processGlobalObjs(context: BuildContext, scope: Scope) {
+    if (scope.kind == ScopeKind.FunctionScope) {
+      const func = createFunctionDeclareNode(context, scope as FunctionScope);
+      context.globalSymbols.set(scope, new VarValue(SemanticsValueKind.GLOBAL_CONST, func.funcType, func, func.name));
+      context.module.functions.push(func);
+    } else if (scope.kind == ScopeKind.ClassScope) {
+      const class_scope = scope as ClassScope;
+      const type = createType(context, class_scope.classType);
+      const class_value = new ClassStaticValue(type as ClassType);
+      context.globalSymbols.set(class_scope, class_value);
+      context.globalSymbols.set(class_scope.classType, class_value);
+    } else if (scope.kind == ScopeKind.GlobalScope
+	        || scope.kind == ScopeKind.NamespaceScope) {
+
+      // put the scope into symbols table, so that the scope can be import
+      const name = scope.mangledName;
+      const ns_var = new VarValue(SemanticsValueKind.GLOBAL_CONST,
+				  Primitive.Namespace,
+				  scope,
+				  name);
+      context.globalSymbols.set(scope, ns_var);
+
+      for (const v of scope.varArray) {
+        if (v.isLocalVar())  continue;
+	console.log(`=== processGlobalVars ${v.mangledName} ${v.varName} declare ${v.isDeclare()}`);
+	const storage : VarStorageType = v.isConst() || v.isReadOnly()
+	              ? SemanticsValueKind.GLOBAL_CONST : SemanticsValueKind.GLOBAL_VAR;
+        let type = context.module.findValueTypeByType(v.varType);
+	if (!type) type = Primitive.Any;
+
+	const var_decl = new VarDeclareNode(storage, type, v.mangledName, context.module.globalVars.length, 0);
+
+	context.module.globalVars.push(var_decl);
+	context.globalSymbols.set(v, var_decl);
       }
     }
+
+    processScopesGlobalObjs(context, scope.children);
 }
 
 function foreachScopeChildren(context: BuildContext, scope: Scope) {
@@ -338,15 +347,18 @@ function generateScopeNodes(context: BuildContext, scope: Scope) {
 function processGlobals(context: BuildContext, parserContext: ParserContext) {
     processTypes(context, parserContext.globalScopes);
 
-    processGlobalVars(context, parserContext.globalScopes);
+    processScopesGlobalObjs(context, parserContext.globalScopes);
 
     for (const g of parserContext.globalScopes) {
       processGlobalObjs(context, g);
     }
 
     for (const g of parserContext.globalScopes) {
+      const [_, symbols] = createLocalSymbols(g, context);
+      context.push(g, symbols);
       generateScopeNodes(context, g);
       processGlobalStatements(context, g);
+      context.pop();
     }
 }
 

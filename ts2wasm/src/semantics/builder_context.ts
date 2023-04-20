@@ -146,7 +146,7 @@ export class BuildContext {
 
   findSymbol(id: string) : SymbolValue | undefined {
     const name = this.top().scope.findIdentifier(id, true);
-    console.log(`=== name: ${id}: ${SymbolKeyToString(name)}`);
+    console.log(`=== findSymbol name: ${id}: ${SymbolKeyToString(name)}`);
     if (!name) {
       Logger.error(`Unknown identifier name "${name}"`);
       return undefined;
@@ -157,8 +157,8 @@ export class BuildContext {
   findSymbolKey(name: SymbolKey) : SymbolValue | undefined {
     for (let i = this.stackEnv.length - 1; i >= 0; i --) {
       const env = this.stackEnv[i];
-      console.log(`=== scope[${i}] ${SymbolKeyToString(env.scope)}, ${env.symbols}`);
-      env.symbols.forEach((v, k) => console.log(`==symbols ${SymbolKeyToString(k)}, ${v.toString()}`));
+      console.log(`=== findSymbolKey scope[${i}] ${SymbolKeyToString(env.scope)}, ${env.symbols}`);
+      env.symbols.forEach((v, k) => console.log(`=== findSymbolKey symbols ${SymbolKeyToString(k)}, ${v.toString()}`));
       if (env.symbols.has(name))
 	return env.symbols.get(name);      
     }

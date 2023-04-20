@@ -119,7 +119,7 @@ export function createLocalSymbols(scope: Scope, context: BuildContext)
   }
 
   for (const child of scope!.children) {
-    console.log(`====== createLocalSymbols child scope:${scope.kind}`);
+    console.log(`====== createLocalSymbols child scope:${scope.kind}, ${scope.getName()}`);
     if (scope.kind == ScopeKind.FunctionScope) {
       const fc = child as FunctionScope;
       const name = fc.funcName;
@@ -141,6 +141,14 @@ export function createLocalSymbols(scope: Scope, context: BuildContext)
       const value = new VarValue(node.storageType, node.type, node, node.index);
       varList!.push(node);
       symbols!.set(fc, value);
+    } else if (scope.kind == ScopeKind.NamespaceScope) {
+      if (symbols == undefined) symbols = new Map();
+      const value = new VarValue(SemanticsValueKind.GLOBAL_CONST,
+				 Primitive.Namespace,
+                                 scope,
+				 scope.getName());
+      symbols.set(scope, value);
+
     }
   }
 
