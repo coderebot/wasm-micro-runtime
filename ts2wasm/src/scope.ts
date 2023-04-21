@@ -531,6 +531,11 @@ export class FunctionScope extends ClosureEnvironment {
         return this.name;
     }
 
+    get isAnonymose() : boolean {
+      return this.name == ''
+            || this.name.indexOf('@anonymous') == 0;
+    }
+
     setFuncType(type: TSFunction) {
         this.functionType = type;
     }
@@ -911,7 +916,7 @@ export class ScopeScanner {
         if (node.name !== undefined) {
             functionName = node.name.getText();
         } else {
-            functionName = 'anonymous' + this.anonymousIndex++;
+            functionName = '@anonymous' + this.anonymousIndex++;
         }
 
         functionScope.setFuncName(functionName);

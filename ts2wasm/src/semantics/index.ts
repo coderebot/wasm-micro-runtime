@@ -216,14 +216,18 @@ function processScopesGlobalObjs(context: BuildContext, scopes: Scope[]) {
 function processGlobalObjs(context: BuildContext, scope: Scope) {
     if (scope.kind == ScopeKind.FunctionScope) {
       const func = createFunctionDeclareNode(context, scope as FunctionScope);
+      console.log(`==== processGlobalObjs Function ${scope.getName()} func: ${func}`);
       context.globalSymbols.set(scope, new VarValue(SemanticsValueKind.GLOBAL_CONST, func.funcType, func, func.name));
       context.module.functions.push(func);
+
     } else if (scope.kind == ScopeKind.ClassScope) {
+
       const class_scope = scope as ClassScope;
       const type = createType(context, class_scope.classType);
       const class_value = new ClassStaticValue(type as ClassType);
       context.globalSymbols.set(class_scope, class_value);
       context.globalSymbols.set(class_scope.classType, class_value);
+
     } else if (scope.kind == ScopeKind.GlobalScope
 	        || scope.kind == ScopeKind.NamespaceScope) {
 

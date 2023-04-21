@@ -120,28 +120,7 @@ export function createLocalSymbols(scope: Scope, context: BuildContext)
 
   for (const child of scope!.children) {
     console.log(`====== createLocalSymbols child scope:${scope.kind}, ${scope.getName()}`);
-    if (scope.kind == ScopeKind.FunctionScope) {
-      const fc = child as FunctionScope;
-      const name = fc.funcName;
-      if (name == '') {
-        continue;
-      }
-      const type = context.module.findValueTypeByType(fc.funcType);
-      if (!type) {
-        throw Error(`Cannot found the function type for ${name} function`);
-      }
-      // create varDeclareNode
-      if (varList == undefined) varList = [];
-      if (symbols == undefined) symbols = new Map();
-      const node = new VarDeclareNode(SemanticsValueKind.LOCAL_CONST,
-				      type,
-                                      name,
-				      varList.length,
-				      0);
-      const value = new VarValue(node.storageType, node.type, node, node.index);
-      varList!.push(node);
-      symbols!.set(fc, value);
-    } else if (scope.kind == ScopeKind.NamespaceScope) {
+    if (scope.kind == ScopeKind.NamespaceScope) {
       if (symbols == undefined) symbols = new Map();
       const value = new VarValue(SemanticsValueKind.GLOBAL_CONST,
 				 Primitive.Namespace,
@@ -388,6 +367,7 @@ export function buildStatement(statement: Statement, context: BuildContext) : Se
     }
     catch(e: any) {
      console.log(e.message);
+     console.log(e.stack);
      const tsNode = statement.tsNode!;
      const sourceFile = tsNode.getSourceFile();
      const start = tsNode.getStart(sourceFile);
