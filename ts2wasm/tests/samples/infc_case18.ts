@@ -7,6 +7,7 @@ interface I {
     x: number;
     y: boolean;
     set _x(x: number);
+    get _x();
 }
 
 class Foo {
