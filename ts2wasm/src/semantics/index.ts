@@ -177,9 +177,13 @@ function createFunctionDeclareNode(context: BuildContext, f: FunctionScope) : Fu
        const p = f.paramArray[i];
        let p_type : ValueType | undefined = undefined;
        if (p.varName == '@this') {
-          p_type = context.globalSymbols.get(f.parent!) as ValueType; // get the class type 
-	  func_type.argumentsType.unshift(p_type); // add the this type;
-	  pidx ++;
+          const symbol = context.globalSymbols.get(f.parent!) as ValueType; // get the class type 
+	  if (!symbol || !(symbol instanceof ClassStaticValue)) {
+            throw Error(`Cannot find the ClassType of method ${name} (symbol ${symbol})`);
+	  }
+
+	  p_type = (symbol! as unknown as ClassStaticValue).type;
+
        } else {
 	  if (p.varName != '@context') {
             p_type = func_type.argumentsType[pidx ++];
@@ -187,7 +191,7 @@ function createFunctionDeclareNode(context: BuildContext, f: FunctionScope) : Fu
             continue;
 	  }
        }
-       console.log(`=== paramter[${i}] ${p.varName} ${p_type}`);
+       //console.log(`=== paramter[${i}] ${name} ${p.varName} ${p_type} argument index: ${pidx}`);
        const param = new VarDeclareNode(
                       SemanticsValueKind.PARAM_VAR,
            	      p_type ?? Primitive.Any,

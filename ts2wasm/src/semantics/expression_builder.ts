@@ -181,6 +181,7 @@ export function createMeta(clazz: TSClass, context: BuildContext, isObjectLitera
     let i = 0;
 
     for (const f of clazz.fields) {
+	//console.log(`==== createMeta ${clazz.className} FIELD ${f.name}`);
         members.push({
             name: f.name,
             type: MemberType.FIELD,
@@ -193,6 +194,7 @@ export function createMeta(clazz: TSClass, context: BuildContext, isObjectLitera
     const static_methods: MemberInfo[] = [];
 
     for (const m of clazz.memberFuncs) {
+	//console.log(`==== createMeta ${clazz.className} member ${m.name} ${m.type.funcKind}`);
         if (m.type.funcKind == FunctionKind.CONSTRUCTOR) {
             ctr = m;
             continue;
@@ -483,7 +485,7 @@ function buildPropertyAccessExpression(expr: PropertyAccessExpression, context: 
   }
 
   if (!member) {
-    throw Error(`Cannot find the member "${member_name}" in ${own}`);
+    throw Error(`Cannot find the member "${member_name}" in ${own} with ref type: ${ValueReferenceKind[ref_type]}`);
   }
 
   let value_kind = getPropertyValueKindFrom(ref_type, member!.type, own_obj_type);
@@ -500,6 +502,7 @@ function buildPropertyAccessExpression(expr: PropertyAccessExpression, context: 
       result_type = (result_type as FunctionType).returnType;
     }
     else if ( member!.type == MemberType.SETTER) {
+      // function type don't include the this type
       result_type = (result_type as FunctionType).argumentsType[0];
     }
   }
@@ -804,6 +807,7 @@ function typeTranslate(type1: ValueType, type2: ValueType) : ValueType {
 export function newBinaryExprValue(type: ValueType|undefined, opKind: ValueBinaryOperator, left_value: SemanticsValue, right_value: SemanticsValue) : SemanticsValue {
   const is_equal = isEqualOperator(opKind);
 
+  console.log(`=== newBinaryExprValue left_value type ${left_value.type}`);
   if (!left_value.type.equals(right_value.type)) {
     if (is_equal) {
       right_value = newCastValue(left_value.type, right_value);
@@ -811,7 +815,7 @@ export function newBinaryExprValue(type: ValueType|undefined, opKind: ValueBinar
 	return updateSetValue(left_value, right_value, opKind);
       }
     } else {
-      console.log(`==== left: ${left_value}, right: ${right_value}`);
+      //console.log(`==== left: ${left_value}, right: ${right_value}`);
       const target_type = typeTranslate(left_value.type, right_value.type);
       //console.log(`====== target_type: ${target_type}`);
       if (!target_type.equals(left_value.type))

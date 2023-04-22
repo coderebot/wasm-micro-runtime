@@ -212,6 +212,13 @@ function main() {
             throw new Error('No ts file to be handled.');
         }
 
+	// TODO remove it when wasm backend use semantices tree
+	if (args.c) {
+          compileArgs.buildWASM = false;
+	} else {
+          compileArgs.buildWASM = true;
+	}
+
         /* Step1: Semantic checking, construct scope tree */
         const parserCtx = new ParserContext();
         parserCtx.parse(sourceFileList, compileArgs);

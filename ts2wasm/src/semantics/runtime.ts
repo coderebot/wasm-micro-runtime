@@ -55,10 +55,12 @@ export interface VTable {
 
 export function FindMemberFromMeta(meta: ObjectMetaInfo, name: string, as_writer:boolean = false) : MemberInfo | undefined {
   for (const m of meta.members) {
+    //console.log(`=== Find ${name} in ${meta.name} with member(${m.name}) ${as_writer}type: ${MemberType[m.type]}`);
     if (m.name == name) {
-      if (m.type == MemberType.GETTER && !as_writer) return m;
-      if (m.type == MemberType.SETTER && as_writer) return m;
-      return m;
+      if ((m.type == MemberType.GETTER && !as_writer)
+	  || (m.type == MemberType.SETTER && as_writer)
+          || (m.type != MemberType.SETTER && m.type != MemberType.GETTER))
+        return m;
     }
   }
 

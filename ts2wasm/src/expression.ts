@@ -465,7 +465,8 @@ export default class ExpressionProcessor {
                     (<BinaryExpression>expr).rightOperand.exprType,
                     (<BinaryExpression>expr).operatorKind,
                 );
-                if (
+
+                if ( this.parserCtx.compileArgs.buildWASM &&
                     ts.isPropertyAccessExpression(binaryExprNode.left) &&
                     binaryExprNode.operatorToken.kind ===
                         ts.SyntaxKind.EqualsToken
